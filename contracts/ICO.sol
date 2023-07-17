@@ -20,6 +20,13 @@ contract ICOContract {
     mapping(address => address) public stablecoinRecipient;
 
     //TODO: Events
+    event TokenRegistered(address indexed token, uint256 price, address indexed stablecoinRecipient);
+    event TokenBought(address indexed token, uint256 amount, address indexed buyer);
+    event TokenWithdrawn(address indexed token, uint256 amount, address indexed to);
+    event TreasuryAddressUpdated(address indexed newTreasuryAddress);
+    event FeesUpdated(uint256 indexed newFees);
+    event StablecoinUpdated(address indexed newStablecoin);
+    event ExecutorUpdated(address indexed newExecutor);
 
     constructor(address _stablecoin, address _treasuryAddress, address _timelock, uint256 _fees) {
         stablecoin = IERC20(_stablecoin);
@@ -45,28 +52,35 @@ contract ICOContract {
         IERC20(_token).transfer(msg.sender, _amount);
         IERC20(_token).transfer(treasuryAddress, (_amount * fees) / 2 ether);
 
+        emit TokenBought(_token, _amount, msg.sender);
+
     }
 
     function registerToken(address _token, uint256 _price, address _stablecoinRecipient) external onlyExecutor {
         tokenPrice[_token] = _price;
         stablecoinRecipient[_token] = _stablecoinRecipient;
+        emit TokenRegistered(_token, _price, _stablecoinRecipient);
     }
 
     function withdrawToken(address _token, address _to) external onlyExecutor {
         uint256 tokenBalance = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransfer(_to, tokenBalance);
+        emit TokenWithdrawn(_token, tokenBalance, _to);
     }
 
     function updateTreasuryAddress(address _treasuryAddress) external onlyExecutor {
         treasuryAddress = _treasuryAddress;
+        emit TreasuryAddressUpdated(_treasuryAddress);
     }
 
     function updateFees(uint256 _fees) external onlyExecutor {
         fees = _fees;
+        emit FeesUpdated(_fees);
     }
 
     function updateStablecoin(address _stablecoin) external onlyExecutor {
         stablecoin = IERC20(_stablecoin);
+        emit StablecoinUpdated(_stablecoin);
     }
 
     modifier buyChecks(address _token, uint256 _amount) {
